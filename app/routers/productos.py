@@ -48,12 +48,12 @@ def obtener_producto( sku_buscar: int):
         else:
             return {
                 "sku" : sku_buscar,
-                "nombre_producto" : productos[0],
-                "marca" : productos[1],
-                "descripcion" : productos[2],
-                "precio" : productos[3],
-                "stock" : productos [4],
-                "estado_producto" : productos [5]
+                "nombre_producto" : productos[1],
+                "marca" : productos[2],
+                "descripcion" : productos[3],
+                "precio" : productos[4],
+                "stock" : productos [5],
+                "estado_producto" : productos [6]
             }
     except Exception as ex:
         raise HTTPException(status_code=500, detail=str(ex))
