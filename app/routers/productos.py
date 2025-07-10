@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.database import get_conexion
+from typing import Optional
 
 router = APIRouter(
     prefix="/productos",
@@ -11,9 +12,9 @@ def obtener_productos():
     try:
         cone =  get_conexion()
         cursor = cone.cursor()
-        cursor.execute("SELECT sku, nombre_producto, marca, descripcion, precio, stock, estado_producto FROM productos")
+        cursor.execute("SELECT sku, nombre_producto, marca, descripcion, precio, stock, estado_producto , imagen_url FROM productos")
         productos = []
-        for sku, nombre_producto, marca, descripcion, precio, stock, estado_producto in cursor:
+        for sku, nombre_producto, marca, descripcion, precio, stock, estado_producto, imagen_url  in cursor:
             productos.append({
                 "sku" : sku,
                 "nombre_producto" : nombre_producto,
@@ -21,7 +22,8 @@ def obtener_productos():
                 "descripcion" : descripcion,
                 "precio" : precio,
                 "stock" : stock,
-                "estado_producto" : estado_producto
+                "estado_producto" : estado_producto,
+                "imagen_url": imagen_url
             })
         cursor.close()
         cone.close()
@@ -53,7 +55,8 @@ def obtener_producto( sku_buscar: int):
                 "descripcion" : productos[3],
                 "precio" : productos[4],
                 "stock" : productos [5],
-                "estado_producto" : productos [6]
+                "estado_producto" : productos [6],
+                "imagen_url": productos [6]
             }
     except Exception as ex:
         raise HTTPException(status_code=500, detail=str(ex))
@@ -62,14 +65,14 @@ def obtener_producto( sku_buscar: int):
 
 @router.post("/")
 
-def agregar_productos (nombre_producto: str, marca: str, descripcion: str, precio:int, stock:int, estado_producto:str) :
+def agregar_productos (nombre_producto: str, marca: str, descripcion: str, precio:int, stock:int, estado_producto:str, imagen_url: Optional[str] = None) :
     try:
         cone =  get_conexion()
         cursor = cone.cursor()
-        cursor.execute("""INSERT INTO productos(nombre_producto, marca, descripcion, precio, stock, estado_producto )
-                          VALUES(:nombre_producto, :marca, :descripcion, :precio, :stock, :estado_producto)""",
+        cursor.execute("""INSERT INTO productos(nombre_producto, marca, descripcion, precio, stock, estado_producto, imagen_url )
+                          VALUES(:nombre_producto, :marca, :descripcion, :precio, :stock, :estado_producto, :imagen_url)""",
                           {"nombre_producto":nombre_producto, "marca":marca, "descripcion":descripcion, 
-                           "precio":precio, "stock" :stock, "estado_producto" :estado_producto})
+                           "precio":precio, "stock" :stock, "estado_producto" :estado_producto, "imagen_url" : imagen_url})
         cone.commit()
         cursor.close()
         cone.close()
@@ -81,15 +84,15 @@ def agregar_productos (nombre_producto: str, marca: str, descripcion: str, preci
 
 @router.put("/{sku_actualizar}")
 
-def actualizar_producto(sku:int, nombre_producto: str, marca: str, descripcion: str, precio:int, stock :int, estado_producto : str ):
+def actualizar_producto(sku:int, nombre_producto: str, marca: str, descripcion: str, precio:int, stock :int, estado_producto : str , imagen_url: Optional[str] = None):
     try:
         cone =  get_conexion()
         cursor = cone.cursor()
         cursor.execute("""UPDATE productos SET sku = :sku, nombre_producto = :nombre_producto, marca = :marca, 
-                       descripcion = :descripcion, precio = :precio, stock = :stock, estado_producto = :estado_producto
+                       descripcion = :descripcion, precio = :precio, stock = :stock, estado_producto = :estado_producto, imagen_url = :imagen_url
                           WHERE sku = :sku""",
                         {"sku":sku, "nombre_producto":nombre_producto, "marca":marca, 
-                         "descripcion":descripcion, "precio":precio, "stock": stock, "estado_producto" : estado_producto})
+                         "descripcion":descripcion, "precio":precio, "stock": stock, "estado_producto" : estado_producto, "imagen_url" : imagen_url})
         if cursor.rowcount ==0:
             cursor.close()
             cone.close()
@@ -125,7 +128,8 @@ from typing import Optional
 @router.patch("/{sku_actualizar}")
 def actualizar_parcial(sku_actualizar:int, nombre_producto:Optional[str]=None, marca:Optional[str]=None, 
                        descripcion:Optional[str] = None, precio:Optional[int] = None, 
-                       stock:Optional[int] = None, estado_producto:Optional[str] = None):
+                       stock:Optional[int] = None, estado_producto:Optional[str] = None,
+                       imagen_url: Optional[str] = None):
     try:
         if not nombre_producto:
             raise HTTPException(status_code=400, detail="Debe enviar al menos 1 dato")
@@ -152,6 +156,9 @@ def actualizar_parcial(sku_actualizar:int, nombre_producto:Optional[str]=None, m
         if estado_producto:
             campos.append("estado_producto = :estado_producto")
             valores["estado_producto"] = estado_producto
+        if imagen_url:
+            campos.append("imagen_url = :imagen_url")
+            valores["imagen_url"] = imagen_url
 
 
         cursor.execute(f"UPDATE productos SET {', '.join(campos)} WHERE sku = :sku"
