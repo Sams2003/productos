@@ -1,6 +1,16 @@
 from fastapi import APIRouter, HTTPException
 from app.database import get_conexion
 from typing import Optional
+from pydantic import BaseModel
+
+class Producto(BaseModel):
+    nombre_producto: str
+    marca: str
+    descripcion: Optional[str] = None
+    precio: float
+    stock: int
+    estado_producto: str
+    imagen_url: Optional[str] = None
 
 router = APIRouter(
     prefix="/productos",
@@ -56,7 +66,7 @@ def obtener_producto( sku_buscar: int):
                 "precio" : productos[4],
                 "stock" : productos [5],
                 "estado_producto" : productos [6],
-                "imagen_url": productos [6]
+                "imagen_url": productos [7]
             }
     except Exception as ex:
         raise HTTPException(status_code=500, detail=str(ex))
@@ -64,21 +74,32 @@ def obtener_producto( sku_buscar: int):
 
 
 @router.post("/")
-
-def agregar_productos (nombre_producto: str, marca: str, descripcion: str, precio:int, stock:int, estado_producto:str, imagen_url: Optional[str] = None) :
+# La función ahora espera un único argumento 'producto' que es del tipo de nuestro modelo Pydantic.
+# FastAPI entiende que debe tomar el JSON del 'body' y validarlo contra este modelo.
+def agregar_productos(producto: Producto):
     try:
-        cone =  get_conexion()
+        cone = get_conexion()
         cursor = cone.cursor()
-        cursor.execute("""INSERT INTO productos(nombre_producto, marca, descripcion, precio, stock, estado_producto, imagen_url )
+        # Ahora usamos los datos del objeto recibido: producto.nombre_producto, etc.
+        cursor.execute("""INSERT INTO productos(nombre_producto, marca, descripcion, precio, stock, estado_producto, imagen_url)
                           VALUES(:nombre_producto, :marca, :descripcion, :precio, :stock, :estado_producto, :imagen_url)""",
-                          {"nombre_producto":nombre_producto, "marca":marca, "descripcion":descripcion, 
-                           "precio":precio, "stock" :stock, "estado_producto" :estado_producto, "imagen_url" : imagen_url})
+                       {
+                           "nombre_producto": producto.nombre_producto,
+                           "marca": producto.marca,
+                           "descripcion": producto.descripcion,
+                           "precio": producto.precio,
+                           "stock": producto.stock,
+                           "estado_producto": producto.estado_producto,
+                           "imagen_url": producto.imagen_url
+                       })
         cone.commit()
         cursor.close()
         cone.close()
-        return{"Producto agregado con éxito"}
+        return {"mensaje": "Producto agregado con éxito"}
     except Exception as ex:
-        raise HTTPException(status_code=500, detail=str(ex))
+        # Es una buena práctica registrar el error en la consola del servidor para depuración
+        print(f"Error al agregar producto: {ex}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {ex}")
 
 
 
